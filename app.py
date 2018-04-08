@@ -19,38 +19,36 @@ def close_connection(exception):
         db.close()
 
 @app.route('/')
-def powitalna():
-	return("testujemy")
+def hello():
+    return("hello")
 
-@app.route('/cities')
-def miasta():
+@app.route('/cities', methods=['GET'])
+def cities_by_country():
     db = get_db()
     cursor = db.cursor()
-    data = cursor.execute('SELECT city FROM city').fetchall()
-    cursor.close()
-    return jsonify(data)
-
-@app.route('/cities<country_name>', methods=['GET'])
-def grupa(country_name):
-    db = get_db()
-    cursor = db.cursor()
-    country_id = (cursor.execute('SELECT country_id FROM country WHERE country = :country_name',{'country_name': country_name}).fetchone())
-    id_miasta = int(country_id[0])
-    data = cursor.execute('SELECT city FROM city WHERE country_id=:country_id',{'country_id': id_miasta}).fetchall()
-    cursor.close()
-    return jsonify(data)
-
-#kluczowy endpoint
-@app.route('/miasto/<city_id>')
-def single_city(city_id):
-    db = get_db()
-    data = db.execute(
-        'SELECT country_id, city, city_id FROM city WHERE city_id = :city_id',
-        {'city_id': city_id}).fetchone()
-    return jsonify(data)
+    if 'country_name' in request.args:
+        country_name= str(request.args['country_name'])
+        country_id = (cursor.execute('SELECT country_id FROM country WHERE country = :country_name',{'country_name': country_name}).fetchone())
+        id_miasta = int(country_id[0])
+        data = cursor.execute('SELECT city FROM city WHERE country_id=:country_id',{'country_id': id_miasta}).fetchall()
+        cursor.close()
+        return jsonify(data)
+    if 'per_page' in request.args and 'page' in request.args:
+        per_page= str(request.args['per_page'])
+        page = str(request.args['page'])
+        a = int(per_page)
+        b = int(page)
+        c = int((b*a)-a)
+        data = cursor.execute('SELECT city FROM city LIMIT:a OFFSET:b',{'a': a, 'b' : c}).fetchall()
+        cursor.close()
+        return jsonify(data)
+    if request.args.get('format') == 'json':
+        data = cursor.execute('SELECT city FROM city').fetchall()
+        cursor.close()
+        return jsonify(data)
 
 @app.route('/cities',methods=['POST'])
-def dodajmiasto():
+def cities_add():
     db = get_db()
     numerek = db.execute('SELECT city_id FROM city ORDER BY city_id DESC LIMIT 1').fetchone()
     country_id = request.get_json('country_id')
@@ -62,19 +60,7 @@ def dodajmiasto():
         .format(country_id, city, city_id, last_update)
     )
     db.commit()
-    return redirect("/miasto/"+str(city_id))
-
-@app.route('/cities<per_page>&<page>', methods=['GET'])
-def miasta_dziel(per_page,page):
-    db = get_db()
-    a = int(per_page)
-    b = int(page)
-    c = int((b*a)-a)
-    cursor = db.cursor()
-    data = cursor.execute('SELECT city FROM city LIMIT:a OFFSET:b',{'a': a, 'b' : c}).fetchall()
-    cursor.close()
+    data = db.execute(
+        'SELECT country_id, city, city_id FROM city WHERE city_id = :city_id',
+        {'city_id': city_id}).fetchone()
     return jsonify(data)
-
-
-    
-
