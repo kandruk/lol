@@ -1,6 +1,7 @@
 import json
 import sqlite3
 from flask import Flask, g, render_template, request, jsonify, redirect, url_for
+import itertools
 
 DATABASE = 'sakila.db'
 
@@ -64,3 +65,21 @@ def cities_add():
         'SELECT country_id, city, city_id FROM city WHERE city_id = :city_id',
         {'city_id': city_id}).fetchone()
     return jsonify(data)
+
+@app.route('/lang_roles')
+def lang_list():
+    query = '''
+    SELECT name, COUNT(*) from language
+    join film using (language_id)
+    JOIN film_actor using (film_id) 
+    GROUP by name
+    '''
+    args = ()
+    db = get_db()
+    data = db.execute(query, args).fetchall()
+    return_json= []
+    for i in data:
+        return_json.extend(list(i))
+        return_json = dict(itertools.zip_longest(*[iter(return_json)] * 2, fillvalue=""))
+
+    return jsonify(return_json)
