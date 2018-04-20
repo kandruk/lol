@@ -1,5 +1,6 @@
 import json
 import sqlite3
+#niepotrzebnie tyle dodałem
 from flask import Flask, g, render_template, request, jsonify, redirect, url_for
 import itertools
 
